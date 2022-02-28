@@ -14,6 +14,7 @@ metaFile = sys.argv[2]
 
 meta = pd.read_csv(metaFile)
 
+
 drone_ts = tskit.load(sampleFile)
 
 sample_nodes = [drone_ts.node(n) for n in drone_ts.samples()]
@@ -142,6 +143,7 @@ for chromosome in range(1, 17):
     fstLineageDF['Subspecie2'] = [list(lineages.keys())[y] for x,y in lineagePairs]
     fstLineageDF.to_csv("FstLineages" + str(chromosome) + ".csv", index = False)
 
+
     if chromosome == 1:
         fstLineageDFChrPer = fstLineageDF
         fstLineageDFChrPer['Fst'] = fstLineageDFChrPer['Fst'] * chrPer[chromosome - 1]
@@ -192,7 +194,6 @@ for chromosome in range(1, 17):
     tajimaSubspecieDF['Subspecie'] = subspecies.keys()
 
 
-
     if chromosome == 1:
         tajimaSubspecieDFChrPer = tajimaSubspecieDF
         tajimaSubspecieDFChrPer['TajimaD'] = tajimaSubspecieDFChrPer['TajimaD'] * chrPer[chromosome - 1]
@@ -221,7 +222,6 @@ for chromosome in range(1, 17):
     diversitySubspecieDF['Subspecie'] = subspecies.keys()
 
 
-
     if chromosome == 1:
         diversitySubspecieDFFChrPer = diversitySubspecieDF
         diversitySubspecieDFFChrPer['Diversity'] = diversitySubspecieDFFChrPer['Diversity'] * chrPer[chromosome - 1]
@@ -242,6 +242,7 @@ for chromosome in range(1, 17):
     df.to_csv(filePath + "Statistics/GnnInd_Chr" + str(chromosome) + ".csv")
 
     chrGnn = pd.read_csv(filePath +'Statistics/GnnInd_Chr' + str(chromosome) + '.csv', index_col = None)
+
     if chromosome == 1:
         combinedGnn = chrGnn.iloc[:, 1:692]
     else:
@@ -257,6 +258,7 @@ diversitySubspecieDFFChrPer.to_csv(filePath +"Statistics/DiversitySubspecieChrPe
 combinedGnn.to_csv(filePath +"Statistics/WeightedGnn_Ind.csv", index = False)
 
 #combinedGnn = pd.read_csv(filePath +"Statistics/WeightedGnn_Ind.csv")
+
 # Plot the data
 figsize = (10, 10)
 combinedGnnG = combinedGnn.copy() #.groupby("individual").mean()
