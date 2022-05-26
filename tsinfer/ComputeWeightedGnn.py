@@ -170,17 +170,17 @@ for chromosome in [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]:
     drone_ts = tskit.load("Trees/Chr" + str(chromosome) + "_processed.trees")
 
     #INDIVIDUAL
-    # gnn = drone_ts.genealogical_nearest_neighbours(
-    #     drone_ts.samples(), samples_listed_by_all
-    # )
-    #
-    #
-    # cols = {drone_ts.node(u).individual: gnn[:, u] for u in drone_ts.samples()}
-    # cols["population"] = [json.loads(drone_ts.population(drone_ts.node(u).population).metadata)["lineage"] for u in drone_ts.samples()]
-    # cols["subspecie"] = [json.loads(drone_ts.population(drone_ts.node(u).population).metadata)["subspecies"] for u in drone_ts.samples()]
-    # cols["individual"] = [drone_ts.node(u).individual for u in drone_ts.samples()]
-    # df = pd.DataFrame(cols)
-    # df.to_csv("Statistics/GnnInd_Chr" + str(chromosome) + ".csv")
+    gnn = drone_ts.genealogical_nearest_neighbours(
+        drone_ts.samples(), samples_listed_by_all
+    )
+
+
+    cols = {drone_ts.node(u).individual: gnn[:, u] for u in drone_ts.samples()}
+    cols["population"] = [json.loads(drone_ts.population(drone_ts.node(u).population).metadata)["lineage"] for u in drone_ts.samples()]
+    cols["subspecie"] = [json.loads(drone_ts.population(drone_ts.node(u).population).metadata)["subspecies"] for u in drone_ts.samples()]
+    cols["individual"] = [drone_ts.node(u).individual for u in drone_ts.samples()]
+    df = pd.DataFrame(cols)
+    df.to_csv("Statistics/GnnInd_Chr" + str(chromosome) + ".csv")
 
     #LINEAGE
     # gnn = drone_ts.genealogical_nearest_neighbours(
