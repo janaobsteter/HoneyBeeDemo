@@ -1,0 +1,3 @@
+rawVcf: "/home/v1jobste/jobsteter/HighlanderLab/share/DavidWragg_DroneGeno/drones-2020.vcf.gz"
+noEstSfsChunks: 1000
+estsfsConfig: "config-kimura_3o.txt"

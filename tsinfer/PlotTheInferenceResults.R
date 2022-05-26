@@ -1,8 +1,9 @@
-setwd("/home/x/EddieDir/")
+setwd("/home/x/EddieDir/Honeybees/tsinfer/")
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(viridis)
+library(Rmisc)
 # A script to plot the output of the trees
 
 #FST
@@ -76,11 +77,12 @@ ggplot(data = tajimaD, aes(x = Group, y = TajimasD, fill = Chromosome)) +
   theme_bw(base_size = 16) + 
   scale_fill_viridis(discrete=T)
 tajimaDSum <- read.csv("TajimasDSummary.csv")
-ggplot(data = tajimaDSum, aes(x = Group, y = mean)) + 
+ggplot(data = tajimaDSum, aes(x = Group, y = mean, fill = Group)) + 
   geom_col(position = "dodge") + 
   geom_errorbar(aes(ymin = mean - std, max = mean + std)) + 
   theme_bw(base_size = 16) + 
-  ylab("Mean TajimasD")
+  ylab("Mean TajimasD") + 
+  scale_fill_viridis(discrete=T)
 
 #Diversity
 diversity <- read.csv("DiversityCombined.csv")
@@ -135,26 +137,14 @@ ggplot(data = afs, aes(x = X0)) + geom_histogram(bins = 100) +
   facet_grid(cols = vars(Lineage))
 
 
-
+################################################3
+#Weighted by chromosomes
 
 # Fst plot weighted by chromosome
-fst <- read.csv("~/EddieDir/Honeybees/tsinfer/FstSubspecieChrPer.csv")
-ggplot(fst, aes(Subspecie1, Subspecie2)) +
-  geom_raster(aes(fill = Fst))
-
+fst <- read.csv("~/EddieDir/Honeybees/tsinfer/Statistics/FstSubspecieChrPer.csv")
 fst$GroupPair1 <- paste0(fst$Subspecie1, "_", fst$Subspecie2)
 fst$GroupPair2 <- paste0(fst$Subspecie2, "_", fst$Subspecie1)
-ggplot(fst, aes(x = GroupPair, y = Fst, fill = Subspecie1)) +
-  geom_col()
 
-fst <- fst[order(fst$Fst),]
-fst$Fst <- as.numeric(fst$Fst)
-fst$Subspecie1 <- factor(fst$Subspecie1, levels = c("hybrid", "scutellata", "capensis", "unicolor", "ligustica", 
-                                                    "caucasica", "mellifera", "carnica"))
-fst$Subspecie2 <- factor(fst$Subspecie2, levels =  c("hybrid", "scutellata", "capensis", "unicolor", "ligustica", 
-                                                     "caucasica", "mellifera", "carnica"))
-ggplot(fst[fst$Subspecie1 != "hybrid", ], aes(Subspecie1, Subspecie2)) +
-  geom_tile(aes(fill = Fst))
 
 subspecies = c("capensis", "scutellata", "unicolor",
                "mellifera", "carnica", "ligustica", "caucasica", "hybrid")
@@ -164,24 +154,113 @@ fstHeatMap <- merge(fstHeatMap, fst[, c("GroupPair1", "Fst")], by.x = "GroupPair
 fstHeatMap <- merge(fstHeatMap, fst[, c("GroupPair2", "Fst")], by.x = "GroupPair", by.y = "GroupPair2", all.x=T)
 fstHeatMap$Fst <- ifelse(!is.na(fstHeatMap$Fst.x), fstHeatMap$Fst.x, fstHeatMap$Fst.y)
 
-ggplot(fstHeatMap[(fstHeatMap$Var1 != "hybrid") & (fstHeatMap$Var2 != "hybrid"),], aes(Var1, Var2)) +
-  geom_tile(aes(fill = Fst)) + scale_fill_viridis()
 
-ggplot(fstHeatMap[(fstHeatMap$Var1 == "hybrid") | (fstHeatMap$Var2 == "hybrid"),], aes(Var1, Var2)) +
-  geom_tile(aes(fill = Fst)) + scale_colour_viridis()
+triAngNames <- c()
+for (no in 1:length(subspecies)) {
+  for (s2 in subspecies[(no+1):8]) {
+    triAngNames <- c(triAngNames, paste0(subspecies[no], "_", s2))
+  }
+}
+
+fstNonHybrid <- fstHeatMap[(fstHeatMap$Var1 != "hybrid") & (fstHeatMap$Var2 != "hybrid"),]
+subspecieFst <- ggplot(fstNonHybrid[fstNonHybrid$GroupPair %in% triAngNames,], aes(x = Var2, y = Var1)) +
+                  geom_tile(aes(fill = Fst)) + scale_fill_viridis(na.value="black") + 
+                  theme_bw(base_size = 18) + 
+                  theme(panel.grid = element_blank(), axis.title = element_blank(),
+                        axis.text.x = element_text(angle = 90)) + theme(legend.position = "none")
 
 
-ggplot(data = fst, aes(x = Subspecie1, y = Fst, fill = Subspecie1)) + 
-  geom_col() + 
-  facet_grid(rows = vars(Subspecie2)) + 
-  scale_colour_manual(breaks = subspecies, values = viridis(7))
+
+# Fst plot weighted by chromosome
+fst <- read.csv("~/EddieDir/Honeybees/tsinfer/FstLineageChrPer.csv")
+fst$GroupPair1 <- paste0(fst$Subspecie1, "_", fst$Subspecie2)
+fst$GroupPair2 <- paste0(fst$Subspecie2, "_", fst$Subspecie1)
 
 
-fst %>%
-  mutate(Subspecie1 = fct_relevel(Subspecie1, 
-                            subspecies)) %>%
-  ggplot(aes(x = Subspecie1, y = Fst, fill = Subspecie1)) + 
-  geom_col() + 
-  facet_grid(rows = vars(Subspecie2)) + 
-  scale_colour_manual(breaks = subspecies, values = viridis(7))
+lineage = c("A", "M", "C", "O", "H")
+fstHeatMapL <- expand.grid(lineage, lineage)
+fstHeatMapL$GroupPair <- paste0(fstHeatMapL$Var1, "_", fstHeatMapL$Var2)
+fstHeatMapL <- merge(fstHeatMapL, fst[, c("GroupPair1", "Fst")], by.x = "GroupPair", by.y = "GroupPair1", all.x=T)
+fstHeatMapL <- merge(fstHeatMapL, fst[, c("GroupPair2", "Fst")], by.x = "GroupPair", by.y = "GroupPair2", all.x=T)
+fstHeatMapL$Fst <- ifelse(!is.na(fstHeatMapL$Fst.x), fstHeatMapL$Fst.x, fstHeatMapL$Fst.y)
 
+
+triAngNamesL <- c()
+for (no in 1:length(lineage)) {
+  for (s2 in lineage[(no+1):5]) {
+    triAngNamesL <- c(triAngNamesL, paste0(lineage[no], "_", s2))
+  }
+}
+
+fstNonHybridL <- fstHeatMapL[(fstHeatMapL$Var1 != "H") & (fstHeatMapL$Var2 != "H"),]
+lineageFst <- ggplot(fstNonHybridL[fstNonHybridL$GroupPair %in% triAngNamesL,], aes(x = Var2, y = Var1)) +
+                  geom_tile(aes(fill = Fst)) + scale_fill_viridis(na.value="black") + 
+                  theme_bw(base_size = 18) + 
+                  theme(panel.grid = element_blank(), axis.title = element_blank(),
+                        axis.text.x = element_text(angle = 90)) + theme(legend.position = "bottom")
+
+
+fstNonHybrid$Type <- "subspecie"
+fstNonHybridL$Type <- "lineage"
+
+library(Rmisc)
+multiplot(subspecieFst, lineageFst, cols=2)
+
+
+
+
+# Fst plot weighted by chromosome
+tajimaDL <- read.csv("~/EddieDir/Honeybees/tsinfer/TajimaDLineageChrPer.csv")
+tajimaDS <- read.csv("~/EddieDir/Honeybees/tsinfer/TajimaDSubspecieChrPer.csv")
+
+lineage = c("A", "M", "C", "O", "H")
+
+lineageTajimaD <- ggplot(tajimaDL[tajimaDL$Lineage != "H",], aes(x = Lineage, y = TajimaD, fill = Lineage)) +
+  geom_col() + scale_fill_viridis("", na.value="black", discrete = T) + 
+  theme_bw(base_size = 18) + 
+  theme(panel.grid = element_blank(), axis.title = element_blank(),
+        axis.text.x = element_text(angle = 90)) + 
+  theme(legend.position = "right")
+
+subspecies = c("capensis", "scutellata", "unicolor",
+               "mellifera", "carnica", "ligustica", "caucasica", "hybrid")
+tajimaDS$Subspecie <- factor(tajimaDS$Subspecie, levels =  subspecies)
+subspecieeTajimaD <- ggplot(tajimaDS[tajimaDS$Subspecie != "hybrid",], aes(x = Subspecie, y = TajimaD, fill = Subspecie)) +
+  geom_col() + scale_fill_viridis("", na.value="black", discrete = T) + 
+  theme_bw(base_size = 18) + 
+  theme(panel.grid = element_blank(), axis.title = element_blank(),
+        axis.text.x = element_text(angle = 90)) + 
+  theme(legend.position = "left") + 
+  guides(fill = guide_legend(nrow=7))
+
+
+
+multiplot(subspecieeTajimaD, lineageTajimaD, cols=2)
+
+
+#Gnn
+samples <- read.csv("SampleMetaData.csv")
+meta <- read.csv("~/JANA/HoneybeeGeno/tsinfer/Meta.csv")
+length(intersect(samples$Name, meta$ID))
+samples$Name[!samples$Name %in% intersect(samples$Name, meta$ID)]
+samples <- merge(samples, meta, by.x = "Name", by.y = "ID", all.x = T)
+nrow(samples)
+write.csv(samples, "~/JANA/HoneybeeGeno/tsinfer/SampleMetaDataFull.csv", row.names=F, quote=F)
+
+gnn <- read.csv("GNN_hybridDronesCombined.csv")
+gnn <- merge(gnn, samples, by =  "Name", all.x=T)
+
+gnnA <- gnn %>%  group_by(Subspecie, Lineage, Name, Country) %>%  dplyr::summarise(A = mean(A),
+                                                                          C = mean(C),
+                                                                          M = mean(M),
+                                                                          O = mean(O))
+gnnAL <- gnnA %>% pivot_longer(c(A, C, M, O))
+gnnAL[is.na(gnnAL$Country), "Country"] <- "REU"
+
+ggplot(gnnAL, aes(x = Country, y = name , fill = value)) + geom_tile() + 
+  scale_fill_viridis("GNN") + theme_bw(base_size = 18) + 
+  theme(panel.grid = element_blank(), axis.title = element_blank(),
+        axis.text.x = element_text(angle = 90)) + 
+  theme(legend.position = "left") + 
+  guides(fill = guide_legend(nrow=7))
+  
