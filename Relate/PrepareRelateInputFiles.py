@@ -1,19 +1,20 @@
 import pandas as pd
 import os
 import numpy as np
+import sys
 
-workingDir="/home/x/JANA/HoneybeeGeno/tsinfer/HiFiTrees/Relate/"
-vcfDir="/home/x/JANA/HoneybeeGeno/Vcf/"
-relateDir="/home/x/bin/relate_v1.1.6_x86_64_dynamic/"
-ancestralFile="/media/x/0cfdc498-0e95-4f62-87a9-4c0c9f10b126/jana/HoneybeeGeno/MultipleGenomeAlignment/Cactus/AncestralAlleles_HiFiVcf.csv"
+workingDir="/home/v1jobste/jobsteter/Honeybees/Relate/"
+vcfDir="/home/v1jobste/jobsteter/Honeybees/GenomicData/Wragg/Imputed/"
+relateDir="/home/v1jobste/jobsteter/Honeybees/Relate/relate_v1.1.8_x86_64_dynamic/"
+ancestralFile="/home/v1jobste/jobsteter/Honeybees/MultipleGenomeAlignment/Cactus/EstSfs/EstsfsOutput_3o/AncestralAlleles_HiFiVcf.csv"
 ancestralDF = pd.read_csv(ancestralFile, header=None)
 
 
 
 os.chdir(workingDir)
-chr = 16
+chr = sys.argv[1]
 
-os.system("bcftools convert " + vcfDir + "Chr" + str(chr) + ".vcf --hapsample " + workingDir + "Chr" + str(chr))
+os.system("bcftools convert " + vcfDir + "Chr" + str(chr) + "_phased.vcf.gz --hapsample " + workingDir + "Chr" + str(chr))
 os.system("gunzip " + workingDir + "Chr" + str(chr) + ".hap.gz")
 os.system('sed -i "s/*//g" Chr' + str(chr) + '.hap')
 
