@@ -1,2 +1,3 @@
 vcf: # Make sure the chromosome numbers are 1:16 (not names)
+vcfPos:
 ancestralAllele:

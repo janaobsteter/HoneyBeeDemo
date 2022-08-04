@@ -29,16 +29,16 @@ rule multiple_genome_alignment:
     input:
         config=config["config"]
     output:
-        "evolverApis.hal"
+        "MultipleGenomeAlignment/evolverApis.hal"
     shell:
         "scripts/RunCactus.sh" #cactus apisAlignment {input.config} {output}
 #These files are on Andraz's computer > bin> cactus >Honeybees
 
 rule hal_to_maf:
     input:
-        "evolverApis.hal"
+        "MultipleGenomeAlignment/evolverApis.hal"
     output:
-        "apisCactus.maf.gz"
+        "MultipleGenomeAlignment/apisCactus.maf.gz"
     shell:
         "docker run -v $(pwd):/data --rm -it quay.io/comparative-genomics-toolkit/cactus:v2.0.3 hal2maf "
         "{input}  --refGenome Amel {output}"
@@ -46,11 +46,11 @@ rule hal_to_maf:
 
 rule maf_to_bed:
     input:
-        maf="apisCactus.maf.gz"
+        maf="MultipleGenomeAlignment/apisCactus.maf.gz"
         target="Amel"
         chrName=mapChromosomeName
     output:
-        expand("aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
+        expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
     conda:
         "envs/py27.yaml"
     script:
@@ -59,9 +59,9 @@ rule maf_to_bed:
 
 rule extract_focal_positions_aligned:
     input:
-        expand("aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
+        expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
     output:
-        "FocalChrPos{chromosome}.txt"
+        "MultipleGenomeAlignment/FocalChrPos{chromosome}.txt"
     script:
         "bash scripts/GetPosWgaBed.sh {wildcards.chromosome}"
 
@@ -76,25 +76,25 @@ rule extract_focal_positions_aligned:
 
 rule extract_alleles_bed: #IS IT OK TO HAVE EXPAND HERE?
     input:
-        expand("aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
+        expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
     output:
-        "OutspeciesInfo{chromosome}.txt"
+        "MultipleGenomeAlignment/OutspeciesInfo{chromosome}.txt"
     script:
         "scripts/ExtractAllelesBed.sh {wildcards.chromosome}"
 
 rule rename_outspecies_info:
-    input: 
-        "OutspeciesInfo{chromosome}.txt"
+    input:
+        "MultipleGenomeAlignment/OutspeciesInfo{chromosome}.txt"
     output:
-        "OutspeciesInfo{chromosome}_renamed.txt"
+        "MultipleGenomeAlignment/OutspeciesInfo{chromosome}_renamed.txt"
     shell:
         "awk -v NUM={wildcards.chromosome} -v OFS='\t' '{print NUM,$2,$3,$4}' {input} > {output}"
 
 rule combine_alleles:
     input:
-        expand("OutspeciesInfo{chromosome}_renamed.txt", chromosome = config['chromosomes'])
+        expand("MultipleGenomeAlignment/OutspeciesInfo{chromosome}_renamed.txt", chromosome = config['chromosomes'])
     output:
-        alleles="OutspeciesInfo_All_aligned.txt"
-        positions="FocalChrPos_All_aligned.txt"
+        alleles="MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt"
+        positions="MultipleGenomeAlignment/FocalChrPos_All_aligned.txt"
     script:
         "scripts/CombineAlleles.sh config['chromosomes']"

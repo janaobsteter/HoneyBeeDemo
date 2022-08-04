@@ -1,3 +1,4 @@
-rawVcf: "/home/v1jobste/jobsteter/HighlanderLab/share/DavidWragg_DroneGeno/drones-2020.vcf.gz"
+rawVcf: "/home/v1jobste/jobsteter/HighlanderLab/share/DavidWragg_DroneGeno/drones-2020.vcf.gz" #Make sure the chromosome numbers are 1:16
+finalVcf: "" #Make sure the chromosome numbers are 1:16
 noEstSfsChunks: 1000
 estsfsConfig: "config-kimura_3o.txt"
