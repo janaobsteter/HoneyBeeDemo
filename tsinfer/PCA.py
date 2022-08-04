@@ -164,8 +164,8 @@ for n in ts.samples():
 
 ### Csd tree
 ts3 = tskit.load("/home/janao/Documents/1Projects/HoneybeeDemography/tsinfer/Chr3_processed.trees")
-ts3 = ts.simplify(nonHNodes)
-csdTree = ts.at(11775000)
+ts3 = ts3.simplify(nonHNodes)
+csdTree = ts3.at(11775000)
 
 
 csdTree.draw(
@@ -277,5 +277,14 @@ yellowtree.draw_svg(
     size=(700, 400),
     node_labels={},    # Remove all node labels for a clearer viz
     style=css_string,
-    symbol_size=8 # Apply the stylesheet
+    symbol_size=10 # Apply the stylesheet
 )
+
+csdTree.draw_svg(
+    path="PCACsd_SVG.svg",
+    size=(700, 400),
+    node_labels={},    # Remove all node labels for a clearer viz
+    style=css_string,
+    symbol_size=10 # Apply the stylesheet
+)
+

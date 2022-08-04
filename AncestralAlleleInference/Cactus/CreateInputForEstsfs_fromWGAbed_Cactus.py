@@ -15,19 +15,21 @@ from math import ceil
 # 2) extract the INFO (AF and AC) for the SNPs in the .snps file from the vcf file
 # 3) create a dictionary to hold the est-sfs coded SNPs for Apis mellifera samples from the vcf and outfroups from .snps
 
-noCycle= int(sys.argv[1])
+noCycle= snakemake.input[0]
+alignedAlleles = snakemake.input[1]
+infoFile = snakemake.input[2]
 
 # Set home directory
 # Enter the directory where you files are
 #workingDir = "YOUR_WORKING_DIR"
-workingDir="/home/v1jobste/jobsteter/Honeybees/MultipleGenomeAlignment/Cactus/EstSfs/"
-os.chdir(workingDir)
+#workingDir="/home/v1jobste/jobsteter/Honeybees/MultipleGenomeAlignment/Cactus/EstSfs/"
+#os.chdir(workingDir)
 #workingDir = "/home/x/andrazDir/bin/cactus/Honeybees/"
 
 # Set input file names
-wgabed = "OutspeciesInfo_All_aligned.txt"
+#wgabed = "OutspeciesInfo_All_aligned.txt"
 # The info tile
-infoFile = "CactusWragg.INFO"
+#infoFile = "CactusWragg.INFO"
 
 # chrConvFile = workingDir + "ChromosomeConversion.csv"
 # chrConv = pd.read_csv(chrConvFile)
@@ -62,7 +64,7 @@ infoFile = "CactusWragg.INFO"
 # Set the name of the modified .snps file
 print("Reading in the .snps file.")
 # Read in the snps file
-snps = pd.read_csv(workingDir + "AlignedSnps_focal_CarnicaChrSortedVcf.txt", sep=" ", header=None)
+snps = pd.read_csv(alignedAlleles, sep=" ", header=None)
 snps = snps[[0,1,2,4]]
 snps.columns =["Chromosome", "Position", "SnpPattern", "FullPos"]
 nRowCycle = ceil(len(snps) / 1000)
@@ -113,7 +115,7 @@ for snpPos, snpPattern in iter(zip(snps.FullPos, snps.SnpPattern)):
             altSum = sum(altCount.values())
             refSum = totalCount - altSum
             refAllele = list(snpLine.REF)[0]
-
+alignedAlleles
 
             # Create an est-sfs dict for the reference allele
             vcfDict = []

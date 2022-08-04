@@ -4,16 +4,16 @@ library(grid)
 library(patchwork)
 
 
-pca <- read.csv("~/JANA/HoneybeeGeno/tsinfer/HiFiTrees/WeightedPCA_coordinated.csv")
+pca <- read.csv("/home/janao/Documents/1Projects/HoneybeeDemography/tsinfer/HiFiTrees/WeightedPCA_coordinated.csv")
 colnames(pca) <- c("ID", paste0("PCA", 1:6))
-meta <- read.csv("~/JANA/HoneybeeGeno/tsinfer/SampleMetaDataFull.csv")
-idNames <- read.csv("~/JANA/HoneybeeGeno/tsinfer/SampleIdNames.csv")
+meta <- read.csv("/home/janao/Documents/1Projects/HoneybeeDemography/tsinfer/SampleMetaDataFull.csv")
+idNames <- read.csv("/home/janao/Documents/1Projects/HoneybeeDemography/tsinfer/SampleIdNames.csv")
 meta <- merge(meta, idNames, by="Name")
 
 pca <- merge(pca, meta, by="ID")
 pca$Subspecie <- factor(pca$Subspecie, levels = c("hybrid", "capensis", "scutellata", "unicolor",
                                                   "caucasica", "mellifera", "carnica", "ligustica"))
-ggplot(data = pca[pca$Subspecie != "hybrid",], aes(x = PCA1, y = PCA3, colour = Subspecie)) +
+ggplot(data = pca[pca$Subspecie != "hybrid",], aes(x = PCA1, y = PCA2, colour = Subspecie)) +
   geom_point(size=2) + 
   theme_bw(base_size=16) + 
   scale_colour_manual("", values = c("#f7e225", "#feb72d", "#f07f4f",

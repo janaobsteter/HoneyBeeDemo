@@ -1,6 +1,27 @@
 configfile: "config/ancestral.yaml"
+chromosomeDict = {'1': 'NC_037638.1',
+                  '2': 'NC_037639.1',
+                  '3': 'NC_037640.1',
+                  '4': 'NC_037641.1',
+                  '5': 'NC_037642.1',
+                  '6': 'NC_037643.1',
+                  '7': 'NC_037644.1',
+                  '8': 'NC_037645.1',
+                  '8': 'NC_037646.1',
+                  '10': 'NC_037647.1',
+                  '11': 'NC_037648.1',
+                  '12': 'NC_037649.1',
+                  '13': 'NC_037650.1',
+                  '14': 'NC_037651.1',
+                  '15': 'NC_037652.1',
+                  '16': 'NC_037653.1',
+                  'MT': 'NC_001566.1',
+}
 
-rule_all:
+def mapChromosomeName(wildcards):
+    return(chromosomeDict[wildcards.chromosome])
+
+rule all:
     input:
         "OutspeciesInfo_All_aligned.txt"
 
@@ -27,12 +48,13 @@ rule maf_to_bed:
     input:
         maf="apisCactus.maf.gz"
         target="Amel"
+        chrName=mapChromosomeName
     output:
         expand("aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
     conda:
         "envs/py27.yaml"
     script:
-        "scripts/maf_to_bed.py -i {input.maf} -r {input.target} -c {wildcards.chromosome} | "
+        "scripts/maf_to_bed.py -i {input.maf} -r {input.target} -c {input.chrName} | "
         "sort -k1,1 -k2,2n -u > aMel_chr${wildcards.chromosome}.wga.bed -"
 
 rule extract_focal_positions_aligned:
@@ -52,7 +74,7 @@ rule extract_focal_positions_aligned:
 #         "bash scripts/CombinePos.sh config['chromosomes']"
 
 
-rule extract_alleles_bed:
+rule extract_alleles_bed: #IS IT OK TO HAVE EXPAND HERE?
     input:
         expand("aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
     output:
@@ -60,9 +82,17 @@ rule extract_alleles_bed:
     script:
         "scripts/ExtractAllelesBed.sh {wildcards.chromosome}"
 
+rule rename_outspecies_info:
+    input: 
+        "OutspeciesInfo{chromosome}.txt"
+    output:
+        "OutspeciesInfo{chromosome}_renamed.txt"
+    shell:
+        "awk -v NUM={wildcards.chromosome} -v OFS='\t' '{print NUM,$2,$3,$4}' {input} > {output}"
+
 rule combine_alleles:
     input:
-        expand("OutspeciesInfo{chromosome}.txt", chromosome = config['chromosomes'])
+        expand("OutspeciesInfo{chromosome}_renamed.txt", chromosome = config['chromosomes'])
     output:
         alleles="OutspeciesInfo_All_aligned.txt"
         positions="FocalChrPos_All_aligned.txt"

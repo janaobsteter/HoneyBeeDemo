@@ -1,4 +1,7 @@
-setwd("~/EddieDir/Honeybees/Relate/EffectivePopSize/Subspecies/")
+setwd("~/EddieDir/Relate/EffectivePopSize/Subspecies/")
+library(ggplot2)
+library(viridis)
+library(dplyr)
 
 popSizeTotal <- data.frame()
 
@@ -36,9 +39,7 @@ popSizeTotal$species <- factor(popSizeTotal$species, levels = c("capensis", "scu
 write.table(popSizeTotal, "Ne_subspecies.csv", quote=F, row.names=F)
 
 #plot
-library(ggplot2)
-library(viridis)
-ggplot(popSizeTotal[popSizeTotal$chr == 5,]) +
+ggplot(popSizeTotal[popSizeTotal$chr == 15,]) +
   geom_step(aes(time, pop_size, color = species), lwd = 1.2) +
   scale_x_continuous(limits = c(1e3,1e7), trans="log10") + annotation_logticks(sides = "bl") +
   scale_y_continuous(trans ="log10") +
@@ -50,14 +51,18 @@ ggplot(popSizeTotal[popSizeTotal$chr == 5,]) +
                                      "#ad2793", "#310597"))
 
 
+popSizeTotal <- popSizeTotal[popSizeTotal$pop_size != Inf,]
 popSizeTotalA <- popSizeTotal %>% group_by(time, groups, species) %>% summarize(meanPopSize = mean(pop_size))
-library(dplyr)
+summary(popSizeTotalA$meanPopSize[popSizeTotalA$species == "unicolor"])
+popSizeTotal[(popSizeTotal$species == "unicolor") & (popSizeTotal$time ==  13895),]
+popSizeTotalA[(popSizeTotalA$species == "unicolor") & (popSizeTotalA$time ==  13895),]
 ggplot(popSizeTotalA) +
   geom_step(aes(time, meanPopSize, color = species), lwd = 1.2) +
   scale_x_continuous(limits = c(1e3,1e7), trans="log10") + annotation_logticks(sides = "bl") +
-  scale_y_continuous(trans ="log10") +
-  ylab("population size") +
-  xlab("years ago")+ 
+  scale_y_continuous(trans ="log10", limits = c(1e2, 1e7)) +
+  ylab("Population size") +
+  xlab("Years ago") + 
+  theme_bw(base_size=30) +
   scale_colour_manual("", values = c("#f7e225", "#feb72d", "#f07f4f",
                                      "#a8db34",
                                      "#228c8d",

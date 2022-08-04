@@ -6,13 +6,13 @@ import pandas as pd
 import sys
 from math import isnan
 
-cycle = snakemake.wildcards[0]
+#cycle = snakemake.wildcards[0]
 
 
 print("Reading est-sfs output")
-est = pd.read_csv("EstsfsOutput_3o/output-" + str(cycle) + "-pvalues.txt", sep = " ", header = None, skiprows = 8)
+est = pd.read_csv("EstsfsOutput_3o/output-pvalues.txt", sep = " ", header = None, skiprows = 8)
 est.columns = ["LineNumber", "ConfigIndex", "pMajAnc", "pAA", "pAC", "pAG", "pAT", "pCA", "pCC", "pCG", "pCT", "pGA", "pGC", "pGG", "pGT", "pTA", "pTC", "pTG", "pTT", "last"]
-namefile = pd.read_csv("EstSfsNames" + str(cycle) + ".csv", header=None)
+namefile = pd.read_csv("EstSfsNames.csv", header=None)
 namefile.columns = ["SnpPos"]
 
 alleles= ["A", "C", "G", "T"]
@@ -32,4 +32,4 @@ for index, site in est.iterrows():
 
 namefile.loc[:, "ancAl"] = ancestral_alleles
 namefile.ancAl.value_counts()
-namefile.to_csv("EstsfsOutput/AncestralAllele" + str(cycle) + "_3o.csv", index=None)
+namefile.to_csv("EstsfsOutput/AncestralAllele_3o.csv", index=None)
