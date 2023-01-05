@@ -1,3 +1,14 @@
+noChromosomes: 16
 vcf: # Make sure the chromosome numbers are 1:16 (not names)
 vcfPos:
 ancestralAllele:
+meta:
+populations:
+  "carnica" : "C"
+  "ligustica" : "C"
+  "mellifera" : "M"
+  "caucasica" : "O"
+  "scutellata" : "A"
+  "unicolor" : "A"
+  "capensis" : "A"
+  "hybrid" : "H"

@@ -4,6 +4,10 @@ include: qc_vcf.smk
 
 configfile: "config/tsinfer.yaml"
 
+rule all:
+    input:
+        expand("Tsinfer/Chr{chromosome}.trees", chromosome = range(1, config['noChromosomes'] + 1)
+
 rule match_ancestral_vcf:
     input:
         vcfPos=config['vcfPos'] # This has more lines
@@ -33,8 +37,27 @@ rule change_infoAA_vcf:
         {input.ancestralAllele} {input.vcf} > {output}
         """
 
+rule split_vcf:
+    input:
+        "Tsinfer/Vcf_AncestralInfo.vcf"
+    output:
+        expand("Tsinfer/Chr{{chromosome}}.vcf")
+    shell:
+        "bcftools view -r {wildcards.chromosome} {input} > {output}"
+
 rule prepare_sample_file:
     input:
-        vcf=
-        meta=
+        vcf="Tsinfer/Chr{chromosome}.vcf"
+        meta=config['meta']
     output:
+        "Tsinfer/Chr{chromosome}.samples"
+    script:
+        "scripts/PrepareTsinferSampleFile.py"
+
+rule infer:
+    input:
+        "Tsinfer/Chr{chromosome}.samples"
+    output:
+        "Tsinfer/Chr{chromosome}.trees"
+    script:
+        "scripts/InferTrees.py"

@@ -1,4 +1,4 @@
-configfile: "config/ancestral.yaml"
+configfile: "config/multiple_whole_genome_alignment.yaml"
 chromosomeDict = {'1': 'NC_037638.1',
                   '2': 'NC_037639.1',
                   '3': 'NC_037640.1',
@@ -27,11 +27,12 @@ rule all:
 
 rule multiple_genome_alignment:
     input:
-        config=config["config"]
+        config=config["cactusConfig"]
     output:
         "MultipleGenomeAlignment/evolverApis.hal"
     shell:
-        "scripts/RunCactus.sh" #cactus apisAlignment {input.config} {output}
+        "docker run -v $(pwd):/data --rm -it quay.io/comparative-genomics-toolkit/cactus:v2.0.3 "
+        "cactus apisAlignment {input.config} {output}"
 #These files are on Andraz's computer > bin> cactus >Honeybees
 
 rule hal_to_maf:
@@ -40,14 +41,14 @@ rule hal_to_maf:
     output:
         "MultipleGenomeAlignment/apisCactus.maf.gz"
     shell:
-        "docker run -v $(pwd):/data --rm -it quay.io/comparative-genomics-toolkit/cactus:v2.0.3 hal2maf "
-        "{input}  --refGenome Amel {output}"
+        "docker run -v $(pwd):/data --rm -it quay.io/comparative-genomics-toolkit/cactus:v2.0.3 "
+        "hal2maf {input}  --refGenome Amel {output}"
 
 
 rule maf_to_bed:
     input:
-        maf="MultipleGenomeAlignment/apisCactus.maf.gz"
-        target="Amel"
+        maf="MultipleGenomeAlignment/apisCactus.maf.gz",
+        target="Amel",
         chrName=mapChromosomeName
     output:
         expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
@@ -59,7 +60,7 @@ rule maf_to_bed:
 
 rule extract_focal_positions_aligned:
     input:
-        expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
+        "MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed"
     output:
         "MultipleGenomeAlignment/FocalChrPos{chromosome}.txt"
     script:
@@ -76,7 +77,7 @@ rule extract_focal_positions_aligned:
 
 rule extract_alleles_bed: #IS IT OK TO HAVE EXPAND HERE?
     input:
-        expand("MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed", chromosome = config['chromosomes'])
+        "MultipleGenomeAlignment/aMel_chr{chromosome}.wga.bed"
     output:
         "MultipleGenomeAlignment/OutspeciesInfo{chromosome}.txt"
     script:
@@ -94,7 +95,7 @@ rule combine_alleles:
     input:
         expand("MultipleGenomeAlignment/OutspeciesInfo{chromosome}_renamed.txt", chromosome = config['chromosomes'])
     output:
-        alleles="MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt"
+        alleles="MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt",
         positions="MultipleGenomeAlignment/FocalChrPos_All_aligned.txt"
     script:
         "scripts/CombineAlleles.sh config['chromosomes']"

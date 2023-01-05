@@ -1,7 +1,6 @@
 from __future__ import division
 
 import sys
-
 import pandas as pd
 import os
 from collections import defaultdict
@@ -15,9 +14,9 @@ from math import ceil
 # 2) extract the INFO (AF and AC) for the SNPs in the .snps file from the vcf file
 # 3) create a dictionary to hold the est-sfs coded SNPs for Apis mellifera samples from the vcf and outfroups from .snps
 
-noCycle= snakemake.input[0]
-alignedAlleles = snakemake.input[1]
-infoFile = snakemake.input[2]
+noCycle = snakemake.wildcards['chunk']
+alignedAlleles = snakemake.input[0]
+infoFile = snakemake.input[1]
 
 # Set home directory
 # Enter the directory where you files are
@@ -155,5 +154,3 @@ pd.DataFrame.from_dict(specieValues, orient='index').to_csv("EstSfs_Dict" + str(
 # Remove the parenthesis from the file
 #os.system("""sed -i "s/(//g" EstSfs_Dict.csv""")
 #os.system("""sed -i "s/)//g" EstSfs_Dict.csv""")
-
-

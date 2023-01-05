@@ -1,4 +1,4 @@
-config: "evolverApis.txt"
+cactusConfig: "evolverApis.txt"
 
 chromosomes:
   1
