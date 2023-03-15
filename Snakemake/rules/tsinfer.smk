@@ -8,9 +8,21 @@ rule all:
     input:
         expand("Tsinfer/Chr{chromosome}.trees", chromosome = range(1, config['noChromosomes'] + 1)
 
+rule extract_vcf_pos:
+    input:
+        config['vcf']
+    output:
+        "Tsinfer/vcfPos.txt"
+    #conda:
+    #    config['tsinferEnv']
+    envmodules:
+        config['bcftoolsModule']
+    shell:
+    "bcftools query -f '%CHROM %POS\n' {input} > {output}"
+
 rule match_ancestral_vcf:
     input:
-        vcfPos=config['vcfPos'] # This has more lines
+        vcfPos="Tsinfer/vcfPos.txt"# This has more lines
         ancestralAllele=config['ancestralAllele']
     output:
         "Tsinfer/AncestralVcfMatch.txt"

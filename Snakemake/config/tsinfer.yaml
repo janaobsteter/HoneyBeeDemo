@@ -1,7 +1,9 @@
+species: "Apis mellifera"
+ploidy: "1"
 noChromosomes: 16
 vcf: # Make sure the chromosome numbers are 1:16 (not names)
-vcfPos:
-ancestralAllele:
+bcftoolsModule: "igmm/apps/bcftools/1.9"
+ancestralAllele: ""
 meta:
 populations:
   "carnica" : "C"
