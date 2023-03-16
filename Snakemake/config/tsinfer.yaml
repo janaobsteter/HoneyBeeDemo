@@ -1,10 +1,11 @@
+workdir: "/home/jana/Documents/1Projects/HoneybeeDemo/"
 species: "Apis mellifera"
 ploidy: "1"
-noChromosomes: 16
-vcf: # Make sure the chromosome numbers are 1:16 (not names)
+noChromosomes: 2
+vcf: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/Chr1and2Small.vcf"  # Make sure the chromosome numbers are 1:16 (not names)
 bcftoolsModule: "igmm/apps/bcftools/1.9"
-ancestralAllele: ""
-meta:
+ancestralAllele: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/AncestralAlleleVcf.txt"
+meta: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/Meta.csv"
 populations:
   "carnica" : "C"
   "ligustica" : "C"
