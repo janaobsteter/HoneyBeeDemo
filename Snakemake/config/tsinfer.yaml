@@ -2,9 +2,7 @@ workdir: "/home/jana/Documents/1Projects/HoneybeeDemo/"
 species: "Apis mellifera"
 ploidy: "1"
 noChromosomes: 2
-split: True
-vcf: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/Chr1and2Small.vcf"  # Make sure the chromosome numbers are 1:16 (not names), NEED TO BE COMPRESSED
-vcfDir: "/home/jana/Documents/1Projects/"
+vcfDir: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/RawVCF/"
 bcftoolsModule: "igmm/apps/bcftools/1.9"
 ancestralAllele: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/AncestralAlleleVcf.txt"
 meta: "/home/jana/Documents/1Projects/HoneybeeDemo/Data/Meta.csv"

@@ -3,9 +3,9 @@ configfile: "../config/tsinfer.yaml"
 
 rule all:
     input:
-        expand("Tsinfer/Chr{chromosome}.vcf.gz", chr = range(1, config['noChromosomes'] + 1))
+        expand("Tsinfer/Chr{chromosome}_ancestral.vcf.gz", chromosome = range(1, config['noChromosomes'] + 1))
 
-noVCFs = length(listdir(config['vcfDir']))
+noVCFs = len(listdir(config['vcfDir']))
 if noVCFs == config['noChromosomes']:
     print("Your VCFs are split.")
 
@@ -13,13 +13,14 @@ if (noVCFs != config['noChromosomes']) & noVCFs != 1:
     print("Check you VCFs.")
 
 if noVCFs == 1:
-    rule split_vcfs: #Input VCFs need ot be compressed and indexes
+    os.chdir(config['vcfDir'])
+    print("Splitting VCFs.")
+    rule split_vcfs: #Input VCFs need to be compressed and indexes
         input:
-            vcf:listdir(config['vcfDir'])[0]
-            vcfDir: config['vcfDir']
+            vcf=listdir(config['vcfDir'])[0],
+            vcfDir=config['vcfDir']
         output:
-            vcf:expand("{input.vcfDir}/Chr{chromosome}.vcf.gz", chromosome = range(1, config['noChromosomes'] + 1))
-            index:expand("{input.vcfDir}/Chr{chromosome}.vcf.gz.csi", chromosome = range(1, config['noChromosomes'] + 1))
+            vcf=expand("Chr{{chromosome}}.vcf.gz")
         #envmodules:
         #    config['bcftoolsModule']
         shell:
@@ -27,6 +28,7 @@ if noVCFs == 1:
             bcftools view -r {wildcards.chromosome} -O z {input} > {output}
             bcftools index {output}
             """
+
 
 rule decompress:
     input:
@@ -54,7 +56,7 @@ rule extract_vcf_pos:
 
 rule match_ancestral_vcf:
     input:
-        vcfPos=rules.extract_vcf_pos.output# This has more lines
+        vcfPos=rules.extract_vcf_pos.output, # This has more lines,
         ancestralAllele=config['ancestralAllele'] # The ancestral file has to have chr_pos and AA, split with a tab
     output:
         "Tsinfer/AncestralVcfMatch{chromosome}.txt" # THis files needs to contain all the variants from the vcf (blank space)
@@ -69,7 +71,7 @@ rule match_ancestral_vcf:
 
 rule change_infoAA_vcf:
     input:
-        vcf=rules.decompress.output
+        vcf=rules.decompress.output,
         ancestralAllele=rules.match_ancestral_vcf.output
     output:
         "Tsinfer/Chr{chromosome}_ancestral.vcf"
