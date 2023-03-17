@@ -19,12 +19,15 @@ rule extract_vcf_pos:
     #envmodules:
     #    config['bcftoolsModule']
     shell:
-        "bcftools query -f '%CHROM %POS\n' {input} > {output}"
+        """
+        bcftools query -f '%CHROM %POS\n' {input} > tmp
+        awk '{{print $1"_"$2}}' tmp > {output}
+        """
 
 rule match_ancestral_vcf:
     input:
         vcfPos="Tsinfer/VcfPos.txt",# This has more lines
-        ancestralAllele=config['ancestralAllele']
+        ancestralAllele=config['ancestralAllele'] # The ancestral file has to have chr_pos and AA, split with a tab
     output:
         "Tsinfer/AncestralVcfMatch.txt"
     shell:
@@ -32,7 +35,8 @@ rule match_ancestral_vcf:
         for line in $(cat {input.vcfPos});
         do
           grep $line {input.ancestralAllele} || echo "";
-        done
+        done > tmp
+        awk -F"," '{{print $1"\t"$2}}' tmp > {output}
         """
 
 rule change_infoAA_vcf:
@@ -43,16 +47,32 @@ rule change_infoAA_vcf:
         "Tsinfer/Vcf_AncestralInfo.vcf"
     shell:
         """
-        NUM=$(( $(grep "##" {input.vcf} | wc -l) + 1 ))
-        awk -v NUM=$NUM 'NR==FNR{{a[NR] = $2; next}} FNR<29{{print}}; \
-        FNR==5{{printf "##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n"}}; \
-        FNR>28{{$8=a[FNR-28]; print}}' OFS="\t" All_AAInfo.txt test.vcf awk '{{FNR>28{{print a[FNR-28]}}}}' \
-        {input.ancestralAllele} {input.vcf} > {output}
+        HEADERNUM=$(( $(grep "##" {input.vcf} | wc -l) + 1 ))
+        INFOLINE=$(( $(grep -Fn "INFO" {input.vcf} | cut --delimiter=":" --fields=1  | head -n1) ))
+        awk -v HEADER=$HEADERNUM -v INFO=$INFOLINE 'NR==FNR{{{{a[FNR] = $2; next}}}} FNR<=HEADER{{{{print}}}}; \
+        FNR==INFO{{{{printf "##INFO=<ID=AA,Number=1,Type=String,Description="Ancestral Allele">\\n"}}}}; \
+        FNR>HEADER{{{{$8=a[FNR-HEADER]; print}}}}' OFS="\t" {input.ancestralAllele} {input.vcf} > {output}
         """
+rule compress_vcf:
+    input:
+        "Tsinfer/Vcf_AncestralInfo.vcf"
+    output:
+        "Tsinfer/Vcf_AncestralInfo.vcf.gz"
+    shell:
+        "bgzip {input}"
+
+rule index_vcf:
+    input:
+        "Tsinfer/Vcf_AncestralInfo.vcf.gz"
+    output:
+        "Tsinfer/Vcf_AncestralInfo.vcf.gz.csi"
+    shell:
+        "bcftools index -f {input} > {output}"
 
 rule split_vcf:
     input:
-        "Tsinfer/Vcf_AncestralInfo.vcf"
+        vcf="Tsinfer/Vcf_AncestralInfo.vcf.gz",
+        index="Tsinfer/Vcf_AncestralInfo.vcf.gz.csi"
     output:
         expand("Tsinfer/Chr{{chromosome}}.vcf")
     shell:
