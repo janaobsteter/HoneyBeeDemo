@@ -1,42 +1,55 @@
 from os import listdir
+from pathlib import Path
 configfile: "../config/tsinfer.yaml"
+
+def list_full_paths(directory):
+    return [os.path.join(directory, file) for file in os.listdir(directory)]
+
 
 rule all:
     input:
         expand("Tsinfer/Chr{chromosome}_ancestral.vcf.gz", chromosome = range(1, config['noChromosomes'] + 1))
 
-noVCFs = len(listdir(config['vcfDir']))
+workdir: config['workdir']
+
+VCFs =[x for x in list_full_paths(config['vcfDir']) if x.endswith(".vcf.gz")]
+print(VCFs)
+noVCFs = len(VCFs)
+print(noVCFs)
 if noVCFs == config['noChromosomes']:
     print("Your VCFs are split.")
 
-if (noVCFs != config['noChromosomes']) & noVCFs != 1:
+if (noVCFs != config['noChromosomes']) and noVCFs != 1:
     print("Check you VCFs.")
 
 if noVCFs == 1:
-    os.chdir(config['vcfDir'])
     print("Splitting VCFs.")
     rule split_vcfs: #Input VCFs need to be compressed and indexes
         input:
-            vcf=listdir(config['vcfDir'])[0],
-            vcfDir=config['vcfDir']
+            vcf=VCFs[0]
         output:
-            vcf=expand("Chr{{chromosome}}.vcf.gz")
+            vcf=[config['vcfDir'] + x for x in expand("Chr{{chromosome}}.vcf.gz")]
+        params:
+            vcfDir=config['vcfDir']
         #envmodules:
         #    config['bcftoolsModule']
         shell:
             """
-            bcftools view -r {wildcards.chromosome} -O z {input} > {output}
-            bcftools index {output}
+            bcftools view -r {wildcards.chromosome} -O z {input} > {output.vcf}
+            bcftools index {output.vcf}
             """
 
 
 rule decompress:
     input:
-        "Tsinfer/Chr{chromosome}.vcf.gz" #This will take
+        config['vcfDir'] + "Chr{chromosome}.vcf.gz" #This will take
     output:
-        "Tsinfer/Chr{chromosome}.vcf"
+        config['vcfDir'] + "Chr{chromosome}.vcf"
+
     shell:
-        "gunzip {input} {output}"
+        """
+        gunzip {input}
+        """
 
 
 rule extract_vcf_pos:
@@ -48,6 +61,8 @@ rule extract_vcf_pos:
     #    config['tsinferEnv']
     #envmodules:
     #    config['bcftoolsModule']
+    params:
+        vcfDir=config['vcfDir']
     shell:
         """
         bcftools query -f '%CHROM %POS\n' {input} > tmp
@@ -89,12 +104,7 @@ rule compress_vcf:
     output:
         "Tsinfer/Chr{chromosome}_ancestral.vcf.gz"
     shell:
-        "bgzip {input}"
-
-rule index_vcf:
-    input:
-        rules.compress_vcf.output
-    output:
-        "Tsinfer/Chr{chromosome}_ancestral.vcf.gz.csi"
-    shell:
-        "bcftools index -f {input} > {output}"
+        """
+        bgzip {input}
+        bcftools index {output}
+        """
