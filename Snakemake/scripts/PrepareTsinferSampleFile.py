@@ -12,8 +12,11 @@ import os
 chromosome = snakemake.wildcards['chromosome']
 vcfFile = snakemake.input[0]
 meta = snakemake.input[1]
+# TODO: Prepare a file with major alleles
+major = snakemake.input[2]
 pops = snakemake.config['populations']
 sampleFile = snakemake.output[0]
+
 
 print("Chromosome is " + str(chromosome))
 
@@ -54,19 +57,22 @@ def add_haploid_sites(vcf, samples):
         # except:
         #     continue
         ancestral = variant.INFO.get("AA", variant.REF)
-        ordered_alleles = [ancestral] + list(set(alleles) - {ancestral})  # Ancestral state must be first in the allele list.
-        allele_index = {
-            old_index: ordered_alleles.index(allele)
-            for old_index, allele in enumerate(alleles)
-        }
-        allele_index[-1] = -1
-        # Map original allele indexes to their indexes in the new alleles list.
-        genotypes = [
-            allele_index[old_index]
-            for row in variant.genotypes
-            for old_index in row[0:1]
-        ]
-        samples.add_site(pos, genotypes=genotypes, alleles=ordered_alleles)
+        if ancestral == ".":
+            varPos = str(chromosome) + "_" + str(var.POS)
+            ancestral = list(major.Anc[major.Pos == varPos])[0]
+
+        try:
+            ancestral_allele = alleles.index(ancestral)
+            #print(pos, ancestral, ancestral_allele)
+        except:
+            ancestral_allele = MISSING_DATA
+
+        genotypes = [g for row in variant.genotypes for g in row[0:2]]
+        #print('POS: ', pos, ' ANC: ', ancestral, ' ALLE: ', alleles)
+        sample_data.add_site(position=pos,
+                         genotypes=genotypes,
+                         alleles=alleles,
+                         ancestral_allele=ancestral_allele
 
 # -- Diploid --#
 def add_diploid_individuals(vcf, samples, populations):

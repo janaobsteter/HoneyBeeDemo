@@ -1,4 +1,5 @@
-rawVcf: "/home/v1jobste/jobsteter/HighlanderLab/share/DavidWragg_DroneGeno/drones-2020.vcf.gz" #Make sure the chromosome numbers are 1:16
+rawVcf: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/GenomicData/Amel_HapMap/AmelHap_1.1.1.f4.vcf.gz" #Make sure the chromosome numbers are 1:16
+alignedFocal: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/MultipleGenomeAlignment/Focal_aligned/FocalChrPos_All_aligned.txt"
 finalVcf: "" #Make sure the chromosome numbers are 1:16
 noEstSfsChunks: 1000
 estsfsConfig: "config-kimura_3o.txt"

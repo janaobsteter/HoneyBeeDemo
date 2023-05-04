@@ -8,22 +8,21 @@ def list_full_paths(directory):
 
 rule all:
     input:
-        expand("Tsinfer/Chr{chromosome}_ancestral.vcf.gz", chromosome = range(1, config['noChromosomes'] + 1))
+        vcf=expand("Tsinfer/Chr{chromosome}_ancestral.vcf.gz", chromosome = range(1, config['noChromosomes'] + 1)),
+        info=expand("Tsinfer/Info{chromosome}.INFO", chromosome = range(1, config['noChromosomes'] + 1)),
 
 workdir: config['workdir']
 
 VCFs =[x for x in list_full_paths(config['vcfDir']) if x.endswith(".vcf.gz")]
-print(VCFs)
 noVCFs = len(VCFs)
-print(noVCFs)
-if noVCFs == config['noChromosomes']:
-    print("Your VCFs are split.")
-
-if (noVCFs != config['noChromosomes']) and noVCFs != 1:
-    print("Check you VCFs.")
+#if noVCFs == config['noChromosomes']:
+    #print("Your VCFs are split.")
+#
+#if (noVCFs != config['noChromosomes']) and noVCFs != 1:
+    #print("Check you VCFs.")
 
 if noVCFs == 1:
-    print("Splitting VCFs.")
+    #print("Splitting VCFs.")
     rule split_vcfs: #Input VCFs need to be compressed and indexes
         input:
             vcf=VCFs[0]
@@ -39,13 +38,25 @@ if noVCFs == 1:
             bcftools index {output.vcf}
             """
 
+rule get_major:
+    input:
+        config['vcfDir'] + "Chr{chromosome}.vcf.gz"
+    output:
+        infoVcf="Tsinfer/tmp.gz",
+        info="Tsinfer/Info{chromosome}.INFO"
+    params:
+        prefix="Tsinfer/Info{chromosome}"
+    shell:
+        """
+        bcftools +fill-tags {input} -Oz -o {output.infoVcf} -- -t AC,AF
+        vcftools --gzvcf {output.infoVcf} --out {params.prefix} --get-INFO AC --get-INFO AF --get-INFO REF
+        """
 
 rule decompress:
     input:
         config['vcfDir'] + "Chr{chromosome}.vcf.gz" #This will take
     output:
         config['vcfDir'] + "Chr{chromosome}.vcf"
-
     shell:
         """
         gunzip {input}

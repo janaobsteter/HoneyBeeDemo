@@ -1,39 +1,45 @@
-include: multiple_genome_alignment.smk
-include: qc_vcf.smk
-
-configfile: "config/ancestral.yaml"
+configfile: "../config/ancestral.yaml"
 
 
 rule_all:
     input:
         "AncestralAllele_FinalVcf.txt"
 
-rule rename_alleles:
-    input:
-        "MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt"
-    output:
-        "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
-    script:
-        "scripts"
-
-rule sort_alleles:
-    input:
-        "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
-    output:
-        "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChrSorted.txt"
-    shell:
-        "sort -V {input}.txt | awk -F" " '{print $0 FS $1"_"$2}' > {output}"
+# rule rename_alleles:
+#     input:
+#         "MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt"
+#     output:
+#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
+#     script:
+#         "scripts"
+#
+# rule sort_alleles:
+#     input:
+#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
+#     output:
+#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChrSorted.txt"
+#     shell:
+#         "sort -V {input}.txt | awk -F" " '{print $0 FS $1"_"$2}' > {output}"
 
 
 rule extract_aligned_alleles_from_vcf:
     input:
-        alignedAlleles="MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChrSorted.txt",
+        alignedAlleles=config['alignedFocal'],
         vcf=config['rawVcf'],
         out="RawVcfInfo"
     output:
         "AncestralAllele/RawVcfInfo.INFO"
-    script:
+    shell:
         "scripts/ExtractPosVcf.sh {input.vcf} {input.alignedPos} {input.out}"
+
+
+rule extract_snps_from_info:
+    input:
+        rules.extract_aligned_alleles_from_vcf.output
+    output:
+        "AncestralAllele/RawVcfInfo_SNPs.INFO"script
+    shell:
+        "scripts/ExtractSNPsFromInfo.awk {input} > {output}"
 
 rule extract_pos_aligned_alleles_from_vcf:
     input:
@@ -45,7 +51,7 @@ rule extract_pos_aligned_alleles_from_vcf:
 
 rule extract_vcf_alleles_from_aligned:
     input:
-        alignedAlleles="MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChrSorted.txt",
+        alignedAlleles=config['alignedFocal'],
         vcfPos="AncestralAllele/RawVcfFullPos.txt"
     output:
         "AncestralAllele/AlignedSnps_focal_CarnicaChrSortedRawVcf.txt"
@@ -54,8 +60,8 @@ rule extract_vcf_alleles_from_aligned:
 
 rule create_estsfs_dicts:
     input:
-        alignedAlleles="AncestralAllele/lignedSnps_focal_CarnicaChrSortedRawVcf.txt",
-        vcfAlleles="AncestralAllele/RawVcfInfo.INFO"
+        alignedAlleles=rules.extract_vcf_alleles_from_aligned.output,
+        vcfAlleles=rules.extract_pos_aligned_alleles_from_vcf.output
     output:
         expand("AncestralAllele/Estsfs/EstSfs_Dict{{chunk}}.csv")
     script:
@@ -99,55 +105,71 @@ rule run_estsfs:
         pvalue="AncestralAllele/Estsfs/output-pvalues.txt"
     shell:
         """
-        ./estsfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
+        scripts/estsfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
         """
 
-rule determine_ancestral_allele:
+rule extract_major:
     input:
         "AncestralAllele/Estsfs/output-pvalues.txt"
     output:
-        "AncestralAllele/AncestralAllele_3o.csv"
-    script:
-        "scripts/DetermineAncestralAllele.py"
-
-rule edit_ancestral_allele:
-    input:
-        alleles:"AncestralAllele/AncestralAllele_3o.csv"
-    output:
-        "AncestralAllele/AncestralAlleles1_16.csv"
+        "AncestralAllele/Estsfs/MajorAllele.txt"
     shell:
-        """
-        awk -F"," '$2 != ""' {input.alleles} > tmp
-        sed "s/carnica.LG//g" tmp > {output}
-        """"
+        "../scripts/ExtractMajorAllele.awk {input} > {output}"
 
-rule edit_ancestral_allele_positions:
+rule extract_minor:
     input:
-        pos:"AncestralAllele/AncAllelesPos.csv" #KJE DOBIŠ TO????
+        "AncestralAllele/Estsfs/output-pvalues.txt"
     output:
-        "AncestralAllele/AncAllelesPos1_16.csv"
+        "AncestralAllele/Estsfs/MinorAllele.txt"
     shell:
-        """
-        sed "s/carnica.LG//g" {input.pos} > tmp
-        awk '{print $1"_"$2}' tmp > {output}
-        """
+        "../scripts/ExtractMinorAllele.awk {input} > {output}"
 
-rule get_final_vcf_pos:
+rule extract_major_outgroup:
     input:
-        vcf={config.finalVcf}
+        "AncestralAllele/Estsfs/output-pvalues.txt"
     output:
-        "AncestralAllele/FinalVcf_Pos.txt"
-    shell:
-        """
-        bcftools query -f '%CHROM %POS\n' {input}" > tmp
-        awk '{print $1"_"$2}' tmp > {output}
-        """
+        "AncestralAllele/Estsfs/MajorOutgroup.txt"
+    shell:cd
+        "../scripts/ExtractMajorOutgroup.awk {input} > {output}"
 
-rule extract_vcf_ancAl:
-    input:
-        vcfPos="AncestralAllele/FinalVcf_Pos.txt",
-        ancAlleles="AncestralAllele//AncestralAlleles1_16.csv"
-    output:
-        "AncestralAllele/AncestralAllele_FinalVcf.txt"
-    shell:
-        "grep -Fwf {input.vcfPos} {input.ancAlleles} > {output}"
+# rule edit_ancestral_allele:
+#     input:
+#         alleles:"AncestralAllele/AncestralAllele_3o.csv"
+#     output:
+#         "AncestralAllele/AncestralAlleles1_16.csv"
+#     shell:
+#         """
+#         awk -F"," '$2 != ""' {input.alleles} > tmp
+#         sed "s/carnica.LG//g" tmp > {output}
+#         """"
+#
+# rule edit_ancestral_allele_positions:
+#     input:
+#         pos:"AncestralAllele/AncAllelesPos.csv" #KJE DOBIŠ TO????
+#     output:
+#         "AncestralAllele/AncAllelesPos1_16.csv"
+#     shell:
+#         """
+#         sed "s/carnica.LG//g" {input.pos} > tmp
+#         awk '{print $1"_"$2}' tmp > {output}
+#         """
+#
+# rule get_final_vcf_pos:
+#     input:
+#         vcf={config.finalVcf}
+#     output:
+#         "AncestralAllele/FinalVcf_Pos.txt"
+#     shell:
+#         """
+#         bcftools query -f '%CHROM %POS\n' {input}" > tmp
+#         awk '{print $1"_"$2}' tmp > {output}
+#         """
+#
+# rule extract_vcf_ancAl:
+#     input:
+#         vcfPos="AncestralAllele/FinalVcf_Pos.txt",
+#         ancAlleles="AncestralAllele//AncestralAlleles1_16.csv"
+#     output:
+#         "AncestralAllele/AncestralAllele_FinalVcf.txt"
+#     shell:
+#         "grep -Fwf {input.vcfPos} {input.ancAlleles} > {output}"
