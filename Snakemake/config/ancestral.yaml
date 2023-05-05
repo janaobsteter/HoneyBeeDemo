@@ -1,5 +1,5 @@
-rawVcf: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/GenomicData/Amel_HapMap/AmelHap_1.1.1.f4.vcf.gz" #Make sure the chromosome numbers are 1:16
-alignedFocal: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/MultipleGenomeAlignment/Focal_aligned/FocalChrPos_All_aligned.txt"
-finalVcf: "" #Make sure the chromosome numbers are 1:16
-noEstSfsChunks: 1000
-estsfsConfig: "config-kimura_3o.txt"
+rawVcf: "/home/jana/EddieDir/Honeybees/GenomicData/Amel_HapMap/testRenamed.vcf.gz"
+alignedFocal: "/home/jana/EddieDir/Honeybees/MultipleGenomeAlignment/Focal_aligned/testAligned.txt"
+noEstSfsChunks: 3
+estsfsConfig: "/home/jana/EddieDir/Honeybees/AncestralAllele/Cactus/Harpur/config-kimura_3o.txt"
+estsfsSeed: "/home/jana/EddieDir/Honeybees/AncestralAllele/Cactus/Harpur/seedfile.txt"
