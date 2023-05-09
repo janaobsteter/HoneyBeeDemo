@@ -1,175 +1,163 @@
+from __future__ import division
+import sys
+
 configfile: "../config/ancestral.yaml"
 
-
-rule_all:
+rule all:
     input:
-        "AncestralAllele_FinalVcf.txt"
-
-# rule rename_alleles:
-#     input:
-#         "MultipleGenomeAlignment/OutspeciesInfo_All_aligned.txt"
-#     output:
-#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
-#     script:
-#         "scripts"
-#
-# rule sort_alleles:
-#     input:
-#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChr.txt"
-#     output:
-#         "MultipleGenomeAlignment/AlignedSnps_focal_CarnicaChrSorted.txt"
-#     shell:
-#         "sort -V {input}.txt | awk -F" " '{print $0 FS $1"_"$2}' > {output}"
-
+        "AncestralAllele/AncestralAllele_Vcf.txt"
 
 rule extract_aligned_alleles_from_vcf:
     input:
-        alignedAlleles=config['alignedFocal'],
-        vcf=config['rawVcf'],
-        out="RawVcfInfo"
+        alignedFocal=config['alignedFocal'],
+        vcf=config['rawVcf']
     output:
-        "AncestralAllele/RawVcfInfo.INFO"
+        info="AncestralAllele/RawVcfInfo.INFO",
+        log=temp("AncestralAllele/RawVcfInfo.log")
+    params:
+        prefix="AncestralAllele/RawVcfInfo"
     shell:
-        "scripts/ExtractPosVcf.sh {input.vcf} {input.alignedPos} {input.out}"
+        "scripts/ExtractPosVcf.sh {input.vcf} {input.alignedFocal} {params.prefix}"
 
 
 rule extract_snps_from_info:
     input:
-        rules.extract_aligned_alleles_from_vcf.output
+        "AncestralAllele/RawVcfInfo.INFO"
     output:
-        "AncestralAllele/RawVcfInfo_SNPs.INFO"script
+        "AncestralAllele/RawVcfInfo_SNPs.INFO"
     shell:
-        "scripts/ExtractSNPsFromInfo.awk {input} > {output}"
+        """
+        head -n1 {input} > Header
+        sed -i "s/\t/ /g" Header
+        ./scripts/ExtractSNPsFromInfo.awk {input} > tmp
+        cat Header tmp > {output}
+        rm Header tmp
+        """
 
 rule extract_pos_aligned_alleles_from_vcf:
     input:
-        "AncestralAllele/RawVcfInfo.INFO"
+        rules.extract_snps_from_info.output
     output:
         "AncestralAllele/RawVcfFullPos.txt"
     shell:
-        "awk '{print $1 "_" $2}' {input} > {output}"
+        """
+        awk '{{print $1" "$2}}' {input} > {output}
+        """
 
 rule extract_vcf_alleles_from_aligned:
     input:
-        alignedAlleles=config['alignedFocal'],
-        vcfPos="AncestralAllele/RawVcfFullPos.txt"
+        alignedFocal=config['alignedFocal'],
+        vcfPos=rules.extract_pos_aligned_alleles_from_vcf.output
     output:
-        "AncestralAllele/AlignedSnps_focal_CarnicaChrSortedRawVcf.txt"
+        "AncestralAllele/AlignedSnps_focal_SortedRawVcf.txt"
     shell:
-        "grep -Fwf {input.vcfPos} {input.alignedPop} > {output}"
+        """
+        grep -Fwf {input.vcfPos} {input.alignedFocal} > {output}
+        """
 
 rule create_estsfs_dicts:
     input:
         alignedAlleles=rules.extract_vcf_alleles_from_aligned.output,
-        vcfAlleles=rules.extract_pos_aligned_alleles_from_vcf.output
+        vcfAlleles=rules.extract_snps_from_info.output
+    conda: "tsinfer"
     output:
         expand("AncestralAllele/Estsfs/EstSfs_Dict{{chunk}}.csv")
-    script:
-        "scripts/CreateInputForEstsfs_fromWGAbed_Cactus.py"
+    wildcard_constraints:
+        chunk="\d+"
+    params:
+        outDir="AncestralAllele/Estsfs",
+        noCycle=config['noEstSfsChunks']
+    shell:
+        "python scripts/CreateInputForEstsfs_fromWGAbed_Cactus.py {wildcards.chunk} {params.noCycle} {input.alignedAlleles} {input.vcfAlleles} {params.outDir}"
         #CreateInputForEstsfs_Loop.sh This is qsub
 
 rule edit_estsfs_dicts:
     input:
-        "AncestralAllele/Estsfs//EstSfs_Dict{chunk}.csv"
+        rules.create_estsfs_dicts.output
     output:
-        "AncestralAllele/Estsfs//EstSf_Dict{chunk}E.csv"
+        "AncestralAllele/Estsfs/EstSfs_Dict{chunk}E.csv"
     params:
         chunk=config['noEstSfsChunks']
+    wildcard_constraints:
+        chunk="\d+"
     shell:
         """
-      	cut -f2,3,4,5 {input} |
-        grep -v "()" |
-        sed -i "s/ //g" |
+      	cut -f2,3,4,5 {input} |  grep -v "()" > tmp1
+        sed -i "s/ //g" tmp1
         # Set the correct separators for the file
-        awk -F "\t" '{print $1"\t"$2" "$3" "$4}' |
+        awk -F "\t" '{{print $1"\t"$2" "$3" "$4}}' tmp1 > tmp2
         # Remove the parenthesis from the file
-        sed -i "s/(//g" |
-        sed -i "s/)/ /g" > {output}
+        sed -i "s/(//g" tmp2
+        sed "s/)/ /g" tmp2 > {output}
+        rm tmp1 tmp2
         """
 
 rule combine_estsfs_dicts:
     input:
-        expand("AncestralAllele/Estsfs/EstSf_Dict{chunk}E.csv", chunk = range(config['noEstSfsChunks']))
+        expand("AncestralAllele/Estsfs/EstSfs_Dict{chunk}E.csv", chunk = range(config['noEstSfsChunks']))
     output:
         "AncestralAllele/Estsfs/EstSfs_Dict_Total.csv"
+    wildcard_constraints:
+        chunk="\d+"
     shell:
         "cat {input} > {output}"
 
 rule run_estsfs:
     input:
-        config="AncestralAllele/Estsfs/config-kimura_3o.txt",
         dict="AncestralAllele/Estsfs/EstSfs_Dict_Total.csv",
-        seed="AncestralAllele/Estsfs/seedfile.txt"
+        config=config['estsfsConfig'],
+        seed=config['estsfsSeed']
     output:
         text="AncestralAllele/Estsfs/outputEtsfs.txt",
         pvalue="AncestralAllele/Estsfs/output-pvalues.txt"
     shell:
         """
-        scripts/estsfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
+        ./scripts/est-sfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
         """
 
 rule extract_major:
     input:
-        "AncestralAllele/Estsfs/output-pvalues.txt"
+        "AncestralAllele/Estsfs/EstSfs_Dict_Total.csv"
     output:
-        "AncestralAllele/Estsfs/MajorAllele.txt"
+        "AncestralAllele/MajorAllele.txt"
     shell:
-        "../scripts/ExtractMajorAllele.awk {input} > {output}"
+        "./scripts/ExtractMajorAllele.awk {input} > {output}"
 
 rule extract_minor:
     input:
-        "AncestralAllele/Estsfs/output-pvalues.txt"
+        "AncestralAllele/Estsfs/EstSfs_Dict_Total.csv"
     output:
-        "AncestralAllele/Estsfs/MinorAllele.txt"
+        "AncestralAllele/MinorAllele.txt"
     shell:
-        "../scripts/ExtractMinorAllele.awk {input} > {output}"
+        "./scripts/ExtractMinorAllele.awk {input} > {output}"
 
 rule extract_major_outgroup:
     input:
+        "AncestralAllele/Estsfs/EstSfs_Dict_Total.csv"
+    output:
+        "AncestralAllele/MajorOutgroup.txt"
+    shell:
+        "./scripts/ExtractMajorOutgroup.awk {input} > {output}"
+
+rule extract_estsfs_prob:
+    input:
         "AncestralAllele/Estsfs/output-pvalues.txt"
     output:
-        "AncestralAllele/Estsfs/MajorOutgroup.txt"
-    shell:cd
-        "../scripts/ExtractMajorOutgroup.awk {input} > {output}"
+        "AncestralAllele/AncestralProb.txt"
+    shell:
+        "tail -n +9 {input} | cut -f3 -d' ' > {output}"
 
-# rule edit_ancestral_allele:
-#     input:
-#         alleles:"AncestralAllele/AncestralAllele_3o.csv"
-#     output:
-#         "AncestralAllele/AncestralAlleles1_16.csv"
-#     shell:
-#         """
-#         awk -F"," '$2 != ""' {input.alleles} > tmp
-#         sed "s/carnica.LG//g" tmp > {output}
-#         """"
-#
-# rule edit_ancestral_allele_positions:
-#     input:
-#         pos:"AncestralAllele/AncAllelesPos.csv" #KJE DOBIŠ TO????
-#     output:
-#         "AncestralAllele/AncAllelesPos1_16.csv"
-#     shell:
-#         """
-#         sed "s/carnica.LG//g" {input.pos} > tmp
-#         awk '{print $1"_"$2}' tmp > {output}
-#         """
-#
-# rule get_final_vcf_pos:
-#     input:
-#         vcf={config.finalVcf}
-#     output:
-#         "AncestralAllele/FinalVcf_Pos.txt"
-#     shell:
-#         """
-#         bcftools query -f '%CHROM %POS\n' {input}" > tmp
-#         awk '{print $1"_"$2}' tmp > {output}
-#         """
-#
-# rule extract_vcf_ancAl:
-#     input:
-#         vcfPos="AncestralAllele/FinalVcf_Pos.txt",
-#         ancAlleles="AncestralAllele//AncestralAlleles1_16.csv"
-#     output:
-#         "AncestralAllele/AncestralAllele_FinalVcf.txt"
-#     shell:
-#         "grep -Fwf {input.vcfPos} {input.ancAlleles} > {output}"
+rule determine_ancestral:
+    input:
+        ancProb="AncestralAllele/AncestralProb.txt",
+        major="AncestralAllele/MajorAllele.txt",
+        minor="AncestralAllele/MinorAllele.txt",
+        majorOut="AncestralAllele/MajorOutgroup.txt"
+    output:
+        "AncestralAllele/AncestralAllele_Vcf.txt"
+    shell:
+        """
+        paste {input.ancProb} {input.major} {input.minor} {input.majorOut} > AncestralAllele/ProbMajorMinorOutgroup.txt
+        awk '{{ if(($1 >= 0.5)) {{print $2}} else if (($1 < 0.5)) {{print $3}} else {{print $4}} }}' AncestralAllele/ProbMajorMinorOutgroup.txt > {output}
+        #rm ProbMajorMinorOutgroup.txt
+        """

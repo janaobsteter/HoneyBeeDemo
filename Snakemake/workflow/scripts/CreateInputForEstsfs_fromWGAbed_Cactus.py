@@ -1,5 +1,4 @@
-from __future__ import division
-
+#!/usr/bin/env python3
 import sys
 import pandas as pd
 import os
@@ -13,33 +12,14 @@ from math import ceil
 # 1) to convert .xmfa to .snps file with Mauve and its class SnpExporter
 # 2) extract the INFO (AF and AC) for the SNPs in the .snps file from the vcf file
 # 3) create a dictionary to hold the est-sfs coded SNPs for Apis mellifera samples from the vcf and outfroups from .snps
+args = sys.argv
+cycle = int(args[1]) #snakemake.wildcards['chunk']
+noCycle = int(args[2])
+print("NoCycle is " + str(noCycle))
+alignedAlleles = args[3]#snakemake.input[0]
+infoFile = args[4]#snakemake.input[1]
+outDir = args[5]
 
-noCycle = snakemake.wildcards['chunk']
-alignedAlleles = snakemake.input[0]
-infoFile = snakemake.input[1]
-
-# Set home directory
-# Enter the directory where you files are
-#workingDir = "YOUR_WORKING_DIR"
-#workingDir="/home/v1jobste/jobsteter/Honeybees/MultipleGenomeAlignment/Cactus/EstSfs/"
-#os.chdir(workingDir)
-#workingDir = "/home/x/andrazDir/bin/cactus/Honeybees/"
-
-# Set input file names
-#wgabed = "OutspeciesInfo_All_aligned.txt"
-# The info tile
-#infoFile = "CactusWragg.INFO"
-
-# chrConvFile = workingDir + "ChromosomeConversion.csv"
-# chrConv = pd.read_csv(chrConvFile)
-# chrConv.loc[:, "VCFName"] = "carnica." + chrConv.Name
-#
-# # Create a dictionary of RefSeq:VCFName
-# chrConvD = {rs:number for rs, number in zip(chrConv.RefSeq, chrConv.Number)}
-# chrConvD
-#
-# for rs, number in zip(chrConv.RefSeq, chrConv.VCFName):
-#     os.system("sed -i s/" + rs + "/" + number + "/g " + wgabed)
 
 ######### --- 2 ---###########
 # First extract the first three columns from .snps file (the snp pattern, Apis mellifera config and Apis mellifera position)
@@ -61,13 +41,15 @@ infoFile = snakemake.input[1]
 #os.system("grep -Fwf VcfFullPos.txt AlignedSnps_focal_CarnicaChrSorted.txt > AlignedSnps_focal_CarnicaChrSortedVcf.txt")
 
 # Set the name of the modified .snps file
-print("Reading in the .snps file.")
 # Read in the snps file
 snps = pd.read_csv(alignedAlleles, sep=" ", header=None)
+print("Length of SNPS is " + str(len(snps)))
 snps = snps[[0,1,2,4]]
 snps.columns =["Chromosome", "Position", "SnpPattern", "FullPos"]
-nRowCycle = ceil(len(snps) / 1000)
-snps = snps[nRowCycle * noCycle: nRowCycle * (noCycle+1)]
+nRowCycle = ceil(len(snps) / noCycle)
+print("Nrow cycle is " + str(nRowCycle))
+snps = snps[nRowCycle * cycle: nRowCycle * (cycle+1)]
+print(len(snps))
 # Focal chromosomes
 # Combine the columns into a sigle column position
 # Positions in WGAbed are 0 based (hence +1)!
@@ -78,9 +60,9 @@ snps = snps[nRowCycle * noCycle: nRowCycle * (noCycle+1)]
 # Use vcftools to extract the alternate allele count (AC) and allele frequency (AF) for the given set of SNPs from the vcf file
 #os.system("vcftools --vcf " + vcfFile + " --positions " + focalPos + "  --get-INFO AC --get-INFO AF --out Test_Focal")
 # Read in the vcf info
-snpsInfo = pd.read_csv(infoFile, sep="\t")
+snpsInfo = pd.read_csv(infoFile, sep=" ")
 snpsInfo.loc[:, "Pos"] = snpsInfo['CHROM'].apply(str).str.cat(snpsInfo['POS'].apply(str),sep="_")
-print(snpsInfo.head())
+
 
 
 ######### --- 3 ---###########
@@ -114,7 +96,6 @@ for snpPos, snpPattern in iter(zip(snps.FullPos, snps.SnpPattern)):
             altSum = sum(altCount.values())
             refSum = totalCount - altSum
             refAllele = list(snpLine.REF)[0]
-alignedAlleles
 
             # Create an est-sfs dict for the reference allele
             vcfDict = []
@@ -143,7 +124,7 @@ alignedAlleles
             specieValues[snpPos] = snpCountDict
             snpSpecDict[snpPos] = snpCountDict
 
-pd.DataFrame.from_dict(specieValues, orient='index').to_csv("EstSfs_Dict" + str(noCycle) + ".csv", header=None, sep="\t")
+pd.DataFrame.from_dict(specieValues, orient='index').to_csv(outDir + "/EstSfs_Dict" + str(cycle) + ".csv", header=None, sep="\t")
 
 # Write the dictionary of tupples into a dataframe
 #pd.DataFrame.from_dict(specieValues, orient='index').to_csv("EstSfs_Dict.csv", index=None, header=None, sep="\t")
