@@ -1,5 +1,4 @@
 rawVcf: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/GenomicData/Amel_HapMap/test.vcf.gz"
 alignedFocal: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/MultipleGenomeAlignment/Focal_aligned/alignedTest.txt"
-finalVcf: "" #Make sure the chromosome numbers are 1:16
 noEstSfsChunks: 1000
 estsfsConfig: "config-kimura_3o.txt"
