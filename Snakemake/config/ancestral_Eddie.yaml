@@ -1,4 +1,5 @@
-rawVcf: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/GenomicData/Amel_HapMap/test.vcf.gz"
-alignedFocal: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/MultipleGenomeAlignment/Focal_aligned/alignedTest.txt"
-noEstSfsChunks: 1000
-estsfsConfig: "config-kimura_3o.txt"
+rawVcf: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/GenomicData/Amel_HapMap/Chr1_renamed.vcf.gz"
+alignedFocal: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/MultipleGenomeAlignment/Focal_aligned/testAligned.txt"
+noEstSfsChunks: 3
+estsfsConfig: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/AncestralAllele/Cactus/Amel_Hap/config-kimura_3o.txt"
+estsfsSeed: "/exports/cmvm/eddie/eb/groups/HighlanderLab/jobsteter/Honeybees/AncestralAllele/Cactus/Amel_Hap/seedfile.txt"
