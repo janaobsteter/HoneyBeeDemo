@@ -1,7 +1,7 @@
 from __future__ import division
 import sys
 
-configfile: "../config/ancestral.yaml"
+configfile: "../config/ancestral_Eddie.yaml"
 
 rule all:
     input:
@@ -12,10 +12,10 @@ rule extract_aligned_alleles_from_vcf:
         alignedFocal=config['alignedFocal'],
         vcf=config['rawVcf']
     output:
-        info="AncestralAllele/RawVcfInfo.INFO",
-        log=temp("AncestralAllele/RawVcfInfo.log")
+        info="AncestralAllele/RawVcfInfo.INFO"
     params:
         prefix="AncestralAllele/RawVcfInfo"
+    conda: "bcftools"
     shell:
         "scripts/ExtractPosVcf.sh {input.vcf} {input.alignedFocal} {params.prefix}"
 
@@ -59,7 +59,7 @@ rule create_estsfs_dicts:
     input:
         alignedAlleles=rules.extract_vcf_alleles_from_aligned.output,
         vcfAlleles=rules.extract_snps_from_info.output
-    conda: "tsinfer"
+    conda: "HLab_tsinfer"
     output:
         expand("AncestralAllele/Estsfs/EstSfs_Dict{{chunk}}.csv")
     wildcard_constraints:
@@ -80,6 +80,8 @@ rule edit_estsfs_dicts:
         chunk=config['noEstSfsChunks']
     wildcard_constraints:
         chunk="\d+"
+    log:
+        "logs/EditDict{chunk}.log"
     shell:
         """
       	cut -f2,3,4,5 {input} |  grep -v "()" > tmp1
@@ -112,7 +114,7 @@ rule run_estsfs:
         pvalue="AncestralAllele/Estsfs/output-pvalues.txt"
     shell:
         """
-        ./scripts/est-sfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
+        ./scripts/est-sfs-release-2.04/est-sfs {input.config} {input.dict} {input.seed} {output.text} {output.pvalue}
         """
 
 rule extract_major:
